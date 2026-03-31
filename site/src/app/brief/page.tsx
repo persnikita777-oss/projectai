@@ -36,9 +36,14 @@ const timelineOptions = [
 
 export default function BriefPage() {
   const [selectedServices, setSelectedServices] = useState<string[]>([])
+  const [description, setDescription] = useState("")
   const [selectedBudget, setSelectedBudget] = useState<string | null>(null)
   const [selectedTimeline, setSelectedTimeline] = useState<string | null>(null)
-  const [submitted, setSubmitted] = useState(false)
+  const [name, setName] = useState("")
+  const [company, setCompany] = useState("")
+  const [telegram, setTelegram] = useState("")
+  const [email, setEmail] = useState("")
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle")
 
   const toggleService = (id: string) => {
     setSelectedServices((prev) =>
@@ -46,12 +51,32 @@ export default function BriefPage() {
     )
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitted(true)
+    setStatus("sending")
+    try {
+      const res = await fetch("/api/brief", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          services: selectedServices,
+          description,
+          budget: selectedBudget,
+          timeline: selectedTimeline,
+          name,
+          company,
+          telegram,
+          email,
+        }),
+      })
+      if (!res.ok) throw new Error()
+      setStatus("sent")
+    } catch {
+      setStatus("error")
+    }
   }
 
-  if (submitted) {
+  if (status === "sent") {
     return (
       <div className="py-16 md:py-24">
         <div className="container mx-auto max-w-lg px-4 text-center">
@@ -125,6 +150,8 @@ export default function BriefPage() {
                 <Textarea
                   placeholder="Чем занимается ваш бизнес? Какую проблему хотите решить? Какой результат ожидаете?"
                   rows={5}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                 />
               </CardContent>
             </Card>
@@ -182,28 +209,50 @@ export default function BriefPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <label className="text-sm font-medium mb-1.5 block">Имя *</label>
-                    <Input placeholder="Как к вам обращаться" required />
+                    <Input
+                      placeholder="Как к вам обращаться"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                    />
                   </div>
                   <div>
                     <label className="text-sm font-medium mb-1.5 block">Компания</label>
-                    <Input placeholder="Название компании" />
+                    <Input
+                      placeholder="Название компании"
+                      value={company}
+                      onChange={(e) => setCompany(e.target.value)}
+                    />
                   </div>
                   <div>
                     <label className="text-sm font-medium mb-1.5 block">Telegram *</label>
-                    <Input placeholder="@username" required />
+                    <Input
+                      placeholder="@username"
+                      value={telegram}
+                      onChange={(e) => setTelegram(e.target.value)}
+                      required
+                    />
                   </div>
                   <div>
                     <label className="text-sm font-medium mb-1.5 block">Email</label>
-                    <Input placeholder="email@company.ru" type="email" />
+                    <Input
+                      placeholder="email@company.ru"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Submit */}
-            <Button type="submit" size="lg" className="w-full">
+            {status === "error" && (
+              <p className="text-sm text-red-500 text-center">Ошибка отправки. Попробуйте ещё раз.</p>
+            )}
+            <Button type="submit" size="lg" className="w-full" disabled={status === "sending"}>
               <Send className="mr-2 h-4 w-4" />
-              Отправить заявку
+              {status === "sending" ? "Отправка..." : "Отправить заявку"}
             </Button>
 
             <p className="text-xs text-center text-muted-foreground">
