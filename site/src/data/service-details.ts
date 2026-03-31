@@ -1,5 +1,4 @@
 export interface ServiceDetail {
-  id: string
   longDescription: string
   benefits: string[]
   process: { step: string; description: string }[]
