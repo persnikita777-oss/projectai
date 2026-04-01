@@ -156,8 +156,9 @@ export function generateStaticParams() {
   return slugs.map((slug) => ({ slug }))
 }
 
-export function generateMetadata({ params }: { params: { slug: string } }) {
-  const post = posts[params.slug]
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const post = posts[slug]
   if (!post) return { title: "Статья не найдена" }
   return {
     title: post.title,
@@ -165,11 +166,12 @@ export function generateMetadata({ params }: { params: { slug: string } }) {
   }
 }
 
-export default function BlogPostPage({ params }: { params: { slug: string } }) {
-  const post = posts[params.slug]
+export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const post = posts[slug]
   if (!post) notFound()
 
-  const currentIndex = slugs.indexOf(params.slug)
+  const currentIndex = slugs.indexOf(slug)
   const prevSlug = currentIndex > 0 ? slugs[currentIndex - 1] : null
   const nextSlug = currentIndex < slugs.length - 1 ? slugs[currentIndex + 1] : null
 
