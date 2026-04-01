@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
-const OPENROUTER_API = "https://openrouter.ai/api/v1/chat/completions"
-const API_KEY = process.env.KIE_API_KEY
+const OPENAI_API = "https://api.openai.com/v1/chat/completions"
+const API_KEY = process.env.OPENAI_API_KEY
 
 const SYSTEM_PROMPT = `Ты — AI-консультант компании ProjectAI (projectai.ru). Отвечай кратко, дружелюбно, по-русски.
 
@@ -40,14 +40,14 @@ export async function POST(request: Request) {
     // Ограничиваем историю последними 10 сообщениями
     const recentMessages = messages.slice(-10)
 
-    const res = await fetch(OPENROUTER_API, {
+    const res = await fetch(OPENAI_API, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${API_KEY}`,
       },
       body: JSON.stringify({
-        model: "anthropic/claude-sonnet-4",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           ...recentMessages,
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
 
     if (!res.ok) {
       const err = await res.text()
-      console.error("OpenRouter error:", err)
+      console.error("OpenAI error:", err)
       return NextResponse.json({ error: "Ошибка AI" }, { status: 500 })
     }
 
