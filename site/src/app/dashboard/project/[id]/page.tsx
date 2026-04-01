@@ -15,21 +15,23 @@ const statusLabels: Record<string, { label: string; color: string; step: number 
   brief: { label: "Бриф получен", color: "bg-gray-100 text-gray-700", step: 1 },
   tz: { label: "Составление ТЗ", color: "bg-blue-100 text-blue-700", step: 2 },
   proposal: { label: "КП готово", color: "bg-purple-100 text-purple-700", step: 3 },
-  approved: { label: "Утверждён", color: "bg-green-100 text-green-700", step: 4 },
-  development: { label: "В разработке", color: "bg-yellow-100 text-yellow-700", step: 5 },
-  review: { label: "На проверке", color: "bg-orange-100 text-orange-700", step: 6 },
-  revision: { label: "Правки", color: "bg-red-100 text-red-700", step: 6 },
-  done: { label: "Готов", color: "bg-green-100 text-green-800", step: 7 },
+  contract: { label: "Договор", color: "bg-indigo-100 text-indigo-700", step: 4 },
+  payment: { label: "Ожидание оплаты", color: "bg-amber-100 text-amber-700", step: 5 },
+  development: { label: "В разработке", color: "bg-yellow-100 text-yellow-700", step: 6 },
+  review: { label: "На проверке", color: "bg-orange-100 text-orange-700", step: 7 },
+  revision: { label: "Правки", color: "bg-red-100 text-red-700", step: 7 },
+  done: { label: "Готов", color: "bg-green-100 text-green-800", step: 8 },
 }
 
 const stages = [
   { step: 1, label: "Заявка" },
   { step: 2, label: "ТЗ" },
   { step: 3, label: "КП" },
-  { step: 4, label: "Утверждение" },
-  { step: 5, label: "Разработка" },
-  { step: 6, label: "Проверка" },
-  { step: 7, label: "Запуск" },
+  { step: 4, label: "Договор" },
+  { step: 5, label: "Оплата" },
+  { step: 6, label: "Разработка" },
+  { step: 7, label: "Проверка" },
+  { step: 8, label: "Запуск" },
 ]
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {

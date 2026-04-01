@@ -146,13 +146,14 @@ export async function POST(req: NextRequest) {
       }
 
       const statusEmoji: Record<string, string> = {
-        brief: "📝", tz: "📋", proposal: "💰", approved: "✅",
-        development: "⚙️", review: "🔍", done: "🎯", cancelled: "❌",
+        brief: "📝", tz: "📋", proposal: "💰", contract: "📄",
+        payment: "💳", development: "⚙️", review: "🔍", done: "🎯", cancelled: "❌",
       }
 
       const statusLabel: Record<string, string> = {
         brief: "Бриф", tz: "Составление ТЗ", proposal: "КП готово",
-        approved: "Утверждён", development: "В разработке", review: "На проверке",
+        contract: "Договор", payment: "Ожидание оплаты",
+        development: "В разработке", review: "На проверке",
         done: "Готов", cancelled: "Отменён",
       }
 

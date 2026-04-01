@@ -104,17 +104,62 @@ export function ProjectActions({ projectId, status, hasTZ, hasProposal, tzText }
         </div>
       )}
 
-      {/* Step 3: Approve */}
+      {/* Step 3: Approve proposal → contract */}
       {status === "proposal" && hasProposal && (
         <div>
           <p className="text-sm text-muted-foreground mb-2">
-            Если вас устраивает предложение — утвердите, и мы начнём разработку.
+            Если вас устраивает предложение — утвердите. Далее: подписание договора и предоплата 50%.
           </p>
-          <Button onClick={() => doAction("approve")} disabled={loading !== null}>
-            {loading === "approve" ? (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Создание задач...</>
+          <Button onClick={() => doAction("approve-proposal")} disabled={loading !== null}>
+            {loading === "approve-proposal" ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Подготовка договора...</>
             ) : (
-              <><CheckCircle className="mr-2 h-4 w-4" /> Утвердить и начать разработку</>
+              <><CheckCircle className="mr-2 h-4 w-4" /> Утвердить КП</>
+            )}
+          </Button>
+        </div>
+      )}
+
+      {/* Step 4: Contract */}
+      {status === "contract" && (
+        <div>
+          <p className="text-sm text-muted-foreground mb-2">
+            Договор подготовлен. Ознакомьтесь с условиями и подтвердите.
+          </p>
+          <div className="bg-muted/50 rounded-lg p-4 text-sm mb-3 space-y-2">
+            <p><b>Основные условия:</b></p>
+            <p>• Стоимость: {hasProposal ? "согласно КП" : "—"}</p>
+            <p>• Предоплата: 50% до начала работ</p>
+            <p>• Оставшиеся 50% — после сдачи проекта</p>
+            <p>• Гарантия: 1 месяц бесплатной поддержки</p>
+            <p>• До 3 итераций правок включено</p>
+            <p>• Исходный код передаётся клиенту</p>
+          </div>
+          <Button onClick={() => doAction("sign-contract")} disabled={loading !== null}>
+            {loading === "sign-contract" ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Обработка...</>
+            ) : (
+              <><CheckCircle className="mr-2 h-4 w-4" /> Подписать договор</>
+            )}
+          </Button>
+        </div>
+      )}
+
+      {/* Step 5: Payment */}
+      {status === "payment" && (
+        <div>
+          <p className="text-sm text-muted-foreground mb-2">
+            Договор подписан. Для начала разработки необходима предоплата 50%.
+          </p>
+          <div className="bg-muted/50 rounded-lg p-4 text-sm mb-3">
+            <p>Оплата будет доступна после подключения платёжной системы.</p>
+            <p className="mt-1">Пока что свяжитесь с нами в <a href="https://t.me/projectai_bot" target="_blank" rel="noopener noreferrer" className="text-primary underline">Telegram</a> для оплаты.</p>
+          </div>
+          <Button onClick={() => doAction("confirm-payment")} disabled={loading !== null}>
+            {loading === "confirm-payment" ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Подтверждение...</>
+            ) : (
+              <><DollarSign className="mr-2 h-4 w-4" /> Я оплатил</>
             )}
           </Button>
         </div>

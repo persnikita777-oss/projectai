@@ -47,8 +47,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return saveTZ(project, body.tz)
     case "generate-proposal":
       return generateProposal(project)
-    case "approve":
-      return approveProject(project)
+    case "approve-proposal":
+      return approveProposal(project)
+    case "sign-contract":
+      return signContract(project)
+    case "confirm-payment":
+      return confirmPayment(project)
     default:
       return NextResponse.json({ error: "Unknown action" }, { status: 400 })
   }
@@ -259,11 +263,38 @@ ${project.tz_text}
   return NextResponse.json({ ok: true, proposal, price: proposalPrice })
 }
 
-// --- Approve & create tasks ---
-async function approveProject(project: Record<string, unknown>) {
+// --- Approve proposal → contract ---
+async function approveProposal(project: Record<string, unknown>) {
+  await supabaseAdmin
+    .from("pai_projects")
+    .update({ status: "contract", updated_at: new Date().toISOString() })
+    .eq("id", project.id)
+
+  await notify(`📝 КП утверждено для проекта "${project.title}"\nСтатус: Подготовка договора`)
+
+  return NextResponse.json({ ok: true })
+}
+
+// --- Sign contract → payment ---
+async function signContract(project: Record<string, unknown>) {
+  await supabaseAdmin
+    .from("pai_projects")
+    .update({ status: "payment", updated_at: new Date().toISOString() })
+    .eq("id", project.id)
+
+  await notify(`✍️ Договор подписан для проекта "${project.title}"\nСтатус: Ожидание предоплаты 50%`)
+
+  return NextResponse.json({ ok: true })
+}
+
+// --- Confirm payment → create tasks & start development ---
+async function confirmPayment(project: Record<string, unknown>) {
   if (!project.tz_text) {
     return NextResponse.json({ error: "Нет ТЗ" }, { status: 400 })
   }
+
+  // Notify admin about payment claim — admin verifies manually
+  await notify(`💰 Клиент сообщил об оплате!\nПроект: "${project.title}"\n\n⚠️ Проверьте поступление средств и подтвердите.`)
 
   const prompt = `На основе ТЗ проекта разбей работу на конкретные задачи для разработчика.
 
@@ -292,7 +323,6 @@ ${project.tz_text}
     return NextResponse.json({ error: "Ошибка парсинга задач", raw: tasksRaw }, { status: 500 })
   }
 
-  // Insert tasks
   const taskInserts = tasks.map((t, i) => ({
     project_id: project.id,
     title: t.title,
@@ -303,7 +333,6 @@ ${project.tz_text}
 
   await supabaseAdmin.from("pai_tasks").insert(taskInserts)
 
-  // Update project status
   await supabaseAdmin
     .from("pai_projects")
     .update({
@@ -313,7 +342,7 @@ ${project.tz_text}
     })
     .eq("id", project.id)
 
-  await notify(`✅ Проект "${project.title}" утверждён!\nСоздано ${tasks.length} задач.\nСтатус: В разработке`)
+  await notify(`✅ Проект "${project.title}" запущен в разработку!\nСоздано ${tasks.length} задач.`)
 
   return NextResponse.json({ ok: true, tasks: taskInserts })
 }
