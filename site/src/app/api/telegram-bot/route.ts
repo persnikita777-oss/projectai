@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
         .or(`telegram.ilike.@${tgHandle},telegram.ilike.${tgHandle}`)
         .single()
 
-      if (!client || !client.auth_id || !client.email) {
+      if (!client || !client.email) {
         await sendMessage(
           chatId,
           "👋 Привет! Я бот ProjectAI.\n\n" +
@@ -40,7 +40,6 @@ export async function POST(req: NextRequest) {
           "🔗 https://projektai.ru/brief\n\n" +
           "После заявки нажмите /start снова — я пришлю логин и пароль."
         )
-        // Save chat_id for future notifications
         if (client) {
           await supabaseAdmin
             .from("pai_clients")
@@ -50,16 +49,49 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true })
       }
 
-      // Generate new password
       const password = generatePassword()
-      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-        client.auth_id,
-        { password }
-      )
 
-      if (updateError) {
-        await sendMessage(chatId, "Произошла ошибка. Попробуйте позже или обратитесь в поддержку.")
-        return NextResponse.json({ ok: true })
+      if (client.auth_id) {
+        // Auth user exists — update password
+        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+          client.auth_id,
+          { password }
+        )
+        if (updateError) {
+          await sendMessage(chatId, "Произошла ошибка. Попробуйте позже или обратитесь в поддержку.")
+          return NextResponse.json({ ok: true })
+        }
+      } else {
+        // No auth user yet — create one
+        const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+          email: client.email,
+          password,
+          email_confirm: true,
+          user_metadata: { name: client.name },
+        })
+
+        if (createError) {
+          // Maybe user exists in auth but not linked
+          const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
+          const existing = existingUsers?.users?.find((u) => u.email === client.email)
+          if (existing) {
+            // Link and update password
+            await supabaseAdmin.auth.admin.updateUserById(existing.id, { password })
+            await supabaseAdmin
+              .from("pai_clients")
+              .update({ auth_id: existing.id, phone: String(chatId), updated_at: new Date().toISOString() })
+              .eq("id", client.id)
+          } else {
+            await sendMessage(chatId, "Произошла ошибка создания аккаунта. Обратитесь в поддержку.")
+            return NextResponse.json({ ok: true })
+          }
+        } else if (newUser) {
+          // Link auth to client
+          await supabaseAdmin
+            .from("pai_clients")
+            .update({ auth_id: newUser.user.id, updated_at: new Date().toISOString() })
+            .eq("id", client.id)
+        }
       }
 
       // Save chat_id in phone field for future Telegram notifications
