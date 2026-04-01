@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { ArrowRight } from "lucide-react"
 import { services } from "@/data/services"
 
 export function ServicesGrid() {
@@ -45,6 +46,10 @@ export function ServicesGrid() {
                         </li>
                       ))}
                     </ul>
+                    <div className="mt-4 flex items-center gap-1 text-sm font-medium text-primary">
+                      Подробнее
+                      <ArrowRight className="h-4 w-4" />
+                    </div>
                   </CardContent>
                 </Card>
               </Link>
