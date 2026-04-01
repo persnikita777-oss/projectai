@@ -19,37 +19,27 @@ export async function POST(req: NextRequest) {
 
   const results: string[] = []
 
-  // 1. Auto-generate TZ for new briefs (status = "brief")
+  // 1. Briefs: НЕ обрабатываем автоматически.
+  //    Клиент заполняет опросник ТЗ вручную в ЛК, потом нажимает «Сгенерировать ТЗ».
+  //    Уведомляем админа о новых заявках.
   const { data: newBriefs } = await supabaseAdmin
     .from("pai_projects")
-    .select("*")
+    .select("id, title, service_type, created_at")
     .eq("status", "brief")
+    .is("tz_answers", null)
     .order("created_at", { ascending: true })
-    .limit(3)
+    .limit(5)
 
   for (const project of newBriefs || []) {
-    try {
-      const serviceLabel = SERVICE_LABELS[project.service_type] || project.service_type
-      const tz = await callAI([
-        { role: "system", content: "Ты технический аналитик AI-студии. Составь детальное ТЗ. Русский." },
-        { role: "user", content: `Составь ТЗ:\nУслуга: ${serviceLabel}\nПлатформа: ${project.platform || "не указана"}\nИнтеграции: ${project.integrations?.join(", ") || "нет"}\nОписание: ${project.description || "не указано"}\nБюджет: ${project.budget_range || "не указан"}\n\nРазделы: Цель, Функциональные требования, Стек, Интеграции, НФТ, Этапы, Критерии приёмки.` },
-      ], { maxTokens: 3000 })
-
-      await supabaseAdmin.from("pai_projects").update({
-        tz_text: tz,
-        status: "tz",
-        updated_at: new Date().toISOString(),
-      }).eq("id", project.id)
-
-      results.push(`TZ: ${project.title}`)
-      await notify(`📋 ТЗ автогенерация: "${project.title}"`)
-    } catch (e) {
-      results.push(`TZ ERROR: ${project.title}: ${e}`)
+    // Уведомляем только если проект создан менее 10 минут назад (чтобы не спамить)
+    const age = Date.now() - new Date(project.created_at).getTime()
+    if (age < 10 * 60 * 1000) {
+      results.push(`NEW BRIEF: ${project.title}`)
+      await notify(`📝 Новая заявка: "${project.title}"\nКлиент ещё не заполнил опросник ТЗ`)
     }
   }
 
-  // 2. КП НЕ генерируется автоматически — клиент сначала редактирует ТЗ,
-  //    потом нажимает «ТЗ готово → получить КП» в ЛК
+  // 2. КП и договор — не обрабатываются автоматически (клиент действует в ЛК)
 
   // 3. Process next pending task in active projects (status = "development")
   const { data: devProjects } = await supabaseAdmin
