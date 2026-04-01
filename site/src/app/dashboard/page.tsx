@@ -27,19 +27,40 @@ export default async function DashboardPage() {
   if (!user) redirect("/login")
 
   // Get or create client profile
-  const { data: client } = await supabaseAdmin
+  let { data: client } = await supabaseAdmin
     .from("pai_clients")
     .select("*")
     .eq("auth_id", user.id)
     .single()
 
   if (!client) {
-    // Auto-create client profile
-    await supabaseAdmin.from("pai_clients").insert({
-      auth_id: user.id,
-      name: user.user_metadata?.name || user.email?.split("@")[0] || "Клиент",
-      email: user.email,
-    })
+    // Try to find by email (may exist without auth_id)
+    const { data: byEmail } = await supabaseAdmin
+      .from("pai_clients")
+      .select("*")
+      .eq("email", user.email)
+      .single()
+
+    if (byEmail) {
+      // Link existing client to auth
+      await supabaseAdmin
+        .from("pai_clients")
+        .update({ auth_id: user.id, updated_at: new Date().toISOString() })
+        .eq("id", byEmail.id)
+      client = { ...byEmail, auth_id: user.id }
+    } else {
+      // Create new client profile
+      const { data: newClient } = await supabaseAdmin
+        .from("pai_clients")
+        .insert({
+          auth_id: user.id,
+          name: user.user_metadata?.name || user.email?.split("@")[0] || "Клиент",
+          email: user.email,
+        })
+        .select("*")
+        .single()
+      client = newClient
+    }
   }
 
   // Get projects
