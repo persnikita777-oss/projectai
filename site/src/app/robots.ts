@@ -6,6 +6,6 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
     },
-    sitemap: "https://projectai.ru/sitemap.xml",
+    sitemap: "https://projektai.ru/sitemap.xml",
   }
 }

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next"
 
-const BASE = "https://projectai.ru"
+const BASE = "https://projektai.ru"
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticPages = [
