@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Menu, X } from "lucide-react"
+import { Menu, X, User } from "lucide-react"
 
 const nav = [
   { label: "Услуги", href: "/services" },
@@ -37,6 +37,9 @@ export function Header() {
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/dashboard"><User className="mr-1 h-4 w-4" /> ЛК</Link>
+          </Button>
           <Button variant="outline" size="sm" asChild>
             <Link href="/estimate">Калькулятор</Link>
           </Button>
@@ -68,6 +71,11 @@ export function Header() {
               </Link>
             ))}
             <hr className="my-2" />
+            <Button variant="ghost" asChild>
+              <Link href="/dashboard" onClick={() => setOpen(false)}>
+                <User className="mr-1 h-4 w-4" /> Личный кабинет
+              </Link>
+            </Button>
             <Button variant="outline" asChild>
               <Link href="/estimate" onClick={() => setOpen(false)}>
                 Калькулятор

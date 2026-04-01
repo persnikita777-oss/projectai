@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { supabaseAdmin } from "@/lib/supabase-admin"
 
 const TELEGRAM_API = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`
 const CHAT_ID = process.env.ADMIN_ID
@@ -31,7 +32,7 @@ const timelineLabels: Record<string, string> = {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { services, description, budget, timeline, name, company, telegram, email } = body
+    const { services, description, budget, timeline, name, company, telegram, email, estimate } = body
 
     if (!name || !telegram || !services?.length) {
       return NextResponse.json({ error: "Заполните обязательные поля" }, { status: 400 })
@@ -41,6 +42,62 @@ export async function POST(request: Request) {
       .map((s) => serviceLabels[s] || s)
       .join(", ")
 
+    // Create project in Supabase
+    let projectId: string | null = null
+    try {
+      // Find or create client by email/telegram
+      let clientId: string | null = null
+
+      if (email) {
+        const { data: existing } = await supabaseAdmin
+          .from("pai_clients")
+          .select("id")
+          .eq("email", email)
+          .single()
+        clientId = existing?.id || null
+      }
+
+      if (!clientId && telegram) {
+        const { data: existing } = await supabaseAdmin
+          .from("pai_clients")
+          .select("id")
+          .eq("telegram", telegram)
+          .single()
+        clientId = existing?.id || null
+      }
+
+      if (!clientId) {
+        const { data: newClient } = await supabaseAdmin
+          .from("pai_clients")
+          .insert({ name, company, telegram, email })
+          .select("id")
+          .single()
+        clientId = newClient?.id || null
+      }
+
+      if (clientId) {
+        const { data: project } = await supabaseAdmin
+          .from("pai_projects")
+          .insert({
+            client_id: clientId,
+            title: serviceList,
+            service_type: services[0],
+            description,
+            budget_range: budget ? budgetLabels[budget] || budget : null,
+            timeline: timeline ? timelineLabels[timeline] || timeline : null,
+            estimate_amount: estimate ? parseInt(estimate, 10) : null,
+            status: "brief",
+          })
+          .select("id")
+          .single()
+        projectId = project?.id || null
+      }
+    } catch {
+      // Don't fail the whole request if DB write fails
+      console.error("Failed to save project to DB")
+    }
+
+    // Send Telegram notification
     const lines = [
       "📋 <b>Новая заявка (бриф)</b>",
       "",
@@ -56,6 +113,9 @@ export async function POST(request: Request) {
     if (timeline) {
       lines.push(`<b>Сроки:</b> ${timelineLabels[timeline] || timeline}`)
     }
+    if (estimate) {
+      lines.push(`<b>Оценка калькулятора:</b> от ${parseInt(estimate, 10).toLocaleString("ru-RU")} ₽`)
+    }
 
     lines.push("")
     lines.push(`<b>Имя:</b> ${escapeHtml(name)}`)
@@ -67,9 +127,14 @@ export async function POST(request: Request) {
       lines.push(`<b>Email:</b> ${escapeHtml(email)}`)
     }
 
+    if (projectId) {
+      lines.push("")
+      lines.push(`🆔 Проект: <code>${projectId}</code>`)
+    }
+
     await sendTelegram(lines.join("\n"))
 
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, projectId })
   } catch {
     return NextResponse.json({ error: "Ошибка отправки" }, { status: 500 })
   }

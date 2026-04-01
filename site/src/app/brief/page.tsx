@@ -99,6 +99,7 @@ function BriefForm() {
           company,
           telegram,
           email,
+          estimate: searchParams.get("estimate"),
         }),
       })
       if (!res.ok) throw new Error()
@@ -119,7 +120,12 @@ function BriefForm() {
           <p className="text-muted-foreground mb-6">
             Мы получили вашу заявку и ответим в течение 30 минут в рабочее время.
           </p>
-          <div className="flex justify-center gap-4">
+          <div className="flex flex-col sm:flex-row justify-center gap-3">
+            <Button asChild>
+              <a href="/login">
+                Войти в личный кабинет
+              </a>
+            </Button>
             <Button variant="outline" asChild>
               <a href="https://t.me/projectai_bot" target="_blank" rel="noopener noreferrer">
                 <MessageSquare className="mr-2 h-4 w-4" />
