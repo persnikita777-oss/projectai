@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,7 +35,8 @@ const timelineOptions = [
   { id: "planning", label: "Планирую на будущее" },
 ]
 
-export default function BriefPage() {
+function BriefForm() {
+  const searchParams = useSearchParams()
   const [selectedServices, setSelectedServices] = useState<string[]>([])
   const [description, setDescription] = useState("")
   const [selectedBudget, setSelectedBudget] = useState<string | null>(null)
@@ -44,6 +46,36 @@ export default function BriefPage() {
   const [telegram, setTelegram] = useState("")
   const [email, setEmail] = useState("")
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle")
+
+  // Предзаполняем из параметров калькулятора
+  useEffect(() => {
+    const service = searchParams.get("service")
+    const estimate = searchParams.get("estimate")
+    const platform = searchParams.get("platform")
+    const integrations = searchParams.get("integrations")
+    const extras = searchParams.get("extras")
+
+    if (service) {
+      setSelectedServices([service])
+    }
+
+    if (estimate) {
+      const val = parseInt(estimate, 10)
+      if (val < 30000) setSelectedBudget("under30")
+      else if (val < 70000) setSelectedBudget("30-70")
+      else if (val < 150000) setSelectedBudget("70-150")
+      else setSelectedBudget("150plus")
+    }
+
+    const parts: string[] = []
+    if (platform) parts.push(`Платформа: ${platform}`)
+    if (integrations) parts.push(`Интеграции: ${integrations}`)
+    if (extras) parts.push(`Доп. услуги: ${extras}`)
+    if (estimate) parts.push(`Оценка калькулятора: от ${parseInt(estimate, 10).toLocaleString("ru-RU")} ₽`)
+    if (parts.length > 0) {
+      setDescription(parts.join("\n"))
+    }
+  }, [searchParams])
 
   const toggleService = (id: string) => {
     setSelectedServices((prev) =>
@@ -103,7 +135,6 @@ export default function BriefPage() {
   return (
     <div className="py-16 md:py-24">
       <div className="container mx-auto max-w-3xl px-4">
-        {/* Header */}
         <div className="text-center mb-12">
           <Badge variant="secondary" className="mb-4">Бриф</Badge>
           <h1 className="text-3xl font-bold md:text-5xl mb-4">
@@ -120,7 +151,6 @@ export default function BriefPage() {
 
         <form onSubmit={handleSubmit}>
           <div className="grid gap-8">
-            {/* Service type */}
             <Card>
               <CardContent className="pt-6">
                 <h2 className="text-lg font-bold mb-3">Что нужно сделать?</h2>
@@ -143,7 +173,6 @@ export default function BriefPage() {
               </CardContent>
             </Card>
 
-            {/* Description */}
             <Card>
               <CardContent className="pt-6">
                 <h2 className="text-lg font-bold mb-3">Опишите задачу</h2>
@@ -156,7 +185,6 @@ export default function BriefPage() {
               </CardContent>
             </Card>
 
-            {/* Budget */}
             <Card>
               <CardContent className="pt-6">
                 <h2 className="text-lg font-bold mb-3">Бюджет</h2>
@@ -178,7 +206,6 @@ export default function BriefPage() {
               </CardContent>
             </Card>
 
-            {/* Timeline */}
             <Card>
               <CardContent className="pt-6">
                 <h2 className="text-lg font-bold mb-3">Сроки</h2>
@@ -202,7 +229,6 @@ export default function BriefPage() {
 
             <Separator />
 
-            {/* Contact info */}
             <Card>
               <CardContent className="pt-6">
                 <h2 className="text-lg font-bold mb-3">Контактные данные</h2>
@@ -246,7 +272,6 @@ export default function BriefPage() {
               </CardContent>
             </Card>
 
-            {/* Submit */}
             {status === "error" && (
               <p className="text-sm text-red-500 text-center">Ошибка отправки. Попробуйте ещё раз.</p>
             )}
@@ -262,5 +287,13 @@ export default function BriefPage() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function BriefPage() {
+  return (
+    <Suspense>
+      <BriefForm />
+    </Suspense>
   )
 }

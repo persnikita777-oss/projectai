@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Calculator, ArrowRight, Check } from "lucide-react"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 interface Option {
   id: string
@@ -51,6 +51,7 @@ function formatPrice(n: number): string {
 }
 
 export default function EstimatePage() {
+  const router = useRouter()
   const [selectedService, setSelectedService] = useState<string | null>(null)
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null)
   const [selectedIntegrations, setSelectedIntegrations] = useState<string[]>([])
@@ -236,10 +237,20 @@ export default function EstimatePage() {
                     Предварительная оценка. Точная стоимость — после обсуждения деталей.
                   </p>
 
-                  <Button className="w-full mt-4" size="lg" asChild>
-                    <Link href="/brief">
-                      Обсудить проект <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
+                  <Button
+                    className="w-full mt-4"
+                    size="lg"
+                    onClick={() => {
+                      const params = new URLSearchParams()
+                      if (selectedService) params.set("service", selectedService)
+                      if (selectedPlatform) params.set("platform", selectedPlatform)
+                      if (selectedIntegrations.length > 0) params.set("integrations", selectedIntegrations.join(","))
+                      if (selectedExtras.length > 0) params.set("extras", selectedExtras.join(","))
+                      if (total > 0) params.set("estimate", String(total))
+                      router.push(`/brief?${params.toString()}`)
+                    }}
+                  >
+                    Обсудить проект <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </CardContent>
               </Card>
