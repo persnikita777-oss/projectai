@@ -75,7 +75,7 @@ export default async function ServicePage({
               {service.timeline}
             </Badge>
           </div>
-          <div className="flex gap-3 mt-8">
+          <div className="flex flex-col sm:flex-row gap-3 mt-8">
             <Button size="lg" asChild>
               <Link href="/brief">Обсудить проект</Link>
             </Button>
