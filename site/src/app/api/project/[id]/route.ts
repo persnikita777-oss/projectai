@@ -39,6 +39,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   switch (action) {
+    case "save-tz-answers":
+      return saveTZAnswers(project, body.answers)
     case "generate-tz":
       return generateTZ(project)
     case "save-tz":
@@ -52,10 +54,58 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 }
 
+// --- Save TZ Answers (questionnaire) ---
+async function saveTZAnswers(project: Record<string, unknown>, answers: Record<string, unknown>) {
+  if (!answers) {
+    return NextResponse.json({ error: "Нет ответов" }, { status: 400 })
+  }
+
+  await supabaseAdmin
+    .from("pai_projects")
+    .update({ tz_answers: answers, updated_at: new Date().toISOString() })
+    .eq("id", project.id)
+
+  return NextResponse.json({ ok: true })
+}
+
 // --- Generate TZ ---
 async function generateTZ(project: Record<string, unknown>) {
   const serviceLabel = SERVICE_LABELS[project.service_type as string] || project.service_type
-  const prompt = `Ты — технический аналитик AI-студии ProjectAI. На основе брифа клиента составь детальное техническое задание.
+  const answers = project.tz_answers as Record<string, unknown> | null
+
+  // Build rich context from questionnaire answers
+  const styleLabels: Record<string, string> = {
+    minimal: "Минимализм", corporate: "Корпоративный",
+    creative: "Креативный", tech: "Технологичный",
+  }
+  const paletteLabels: Record<string, string> = {
+    blue: "Синий / Деловой", green: "Зелёный / Эко",
+    purple: "Фиолетовый / Креатив", red: "Красный / Энергия",
+    dark: "Тёмный / Премиум", warm: "Тёплый / Уютный", custom: "Свои цвета",
+  }
+
+  let questionnaireBlock = ""
+  if (answers) {
+    const parts: string[] = []
+    if (answers.style) parts.push(`- Стиль дизайна: ${styleLabels[answers.style as string] || answers.style}`)
+    if (answers.styleComment) parts.push(`- Комментарий к стилю: ${answers.styleComment}`)
+    if (answers.palette) {
+      let paletteText = paletteLabels[answers.palette as string] || answers.palette as string
+      if (answers.palette === "custom" && answers.customColors) paletteText += ` (${answers.customColors})`
+      parts.push(`- Цветовая схема: ${paletteText}`)
+    }
+    if (answers.logoUrl) parts.push(`- Логотип: ${answers.logoUrl}`)
+    if (answers.blocks) parts.push(`- Выбранные блоки: ${(answers.blocks as string[]).join(", ")}`)
+    if (answers.customBlocks) parts.push(`- Дополнительные блоки: ${answers.customBlocks}`)
+    if (answers.businessDesc) parts.push(`- О бизнесе: ${answers.businessDesc}`)
+    if (answers.targetAudience) parts.push(`- Целевая аудитория: ${answers.targetAudience}`)
+    if (answers.competitors) parts.push(`- Конкуренты: ${answers.competitors}`)
+    if (answers.references) parts.push(`- Референсы: ${answers.references}`)
+    if (answers.wishes) parts.push(`- Пожелания: ${answers.wishes}`)
+    if (parts.length > 0) questionnaireBlock = `\nОтветы клиента на опросник:\n${parts.join("\n")}\n`
+  }
+
+  const prompt = `Ты — технический аналитик AI-студии ProjectAI. На основе брифа и ответов клиента составь детальное техническое задание.
 
 Бриф:
 - Услуга: ${serviceLabel}
@@ -65,34 +115,40 @@ async function generateTZ(project: Record<string, unknown>) {
 - Описание: ${project.description || "не указано"}
 - Бюджет: ${project.budget_range || "не указан"}
 - Сроки: ${project.timeline || "не указаны"}
-
+${questionnaireBlock}
 Составь ТЗ в формате:
 
 ## 1. Цель проекта
-[Конкретная бизнес-цель]
+[Конкретная бизнес-цель на основе описания бизнеса и ЦА]
 
-## 2. Функциональные требования
+## 2. Дизайн и стиль
+[Стиль, цветовая схема, общий визуальный подход на основе ответов клиента]
+
+## 3. Структура и блоки
+[Перечисление блоков/страниц с описанием содержимого каждого]
+
+## 4. Функциональные требования
 [Пронумерованный список функций]
 
-## 3. Технический стек
+## 5. Технический стек
 [Список технологий]
 
-## 4. Интеграции
+## 6. Интеграции
 [Описание каждой интеграции]
 
-## 5. Нефункциональные требования
+## 7. Нефункциональные требования
 [Производительность, безопасность, масштабируемость]
 
-## 6. Этапы и сроки
+## 8. Этапы и сроки
 [Разбивка по этапам с оценкой дней]
 
-## 7. Критерии приёмки
+## 9. Критерии приёмки
 [Чёткие условия завершения]
 
-Пиши конкретно, без воды. Ориентируйся на реальные возможности.`
+Пиши конкретно, без воды. Используй ответы клиента для персонализации — если клиент указал стиль, цвета, блоки, референсы — включи их в ТЗ.`
 
   const tz = await callAI([
-    { role: "system", content: "Ты технический аналитик. Пиши ТЗ кратко, конкретно, структурированно. На русском." },
+    { role: "system", content: "Ты технический аналитик. Пиши ТЗ кратко, конкретно, структурированно. На русском. Опирайся на ответы клиента для персонализации." },
     { role: "user", content: prompt },
   ], { maxTokens: 3000 })
 

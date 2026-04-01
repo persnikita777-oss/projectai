@@ -9,6 +9,7 @@ import { ArrowLeft, FileText, CheckCircle, Circle, Loader2, Settings, Rocket } f
 import Link from "next/link"
 import { ProjectActions } from "./actions"
 import { DeployButton } from "./deploy-button"
+import { TZQuestionnaire } from "./tz-questionnaire"
 
 const statusLabels: Record<string, { label: string; color: string; step: number }> = {
   brief: { label: "Бриф получен", color: "bg-gray-100 text-gray-700", step: 1 },
@@ -181,14 +182,38 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
             </Card>
           )}
 
-          {/* TZ */}
-          {project.tz_text && (
+          {/* TZ Questionnaire (for brief status) */}
+          {project.status === "brief" && (
             <Card>
               <CardContent className="py-4">
-                <h3 className="font-semibold mb-2 flex items-center gap-2">
-                  <FileText className="h-4 w-4" /> Техническое задание
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <FileText className="h-4 w-4" /> Заполните опросник для ТЗ
                 </h3>
-                <div className="text-sm whitespace-pre-wrap">{project.tz_text}</div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Ответьте на вопросы — AI сформирует детальное ТЗ на основе ваших предпочтений.
+                </p>
+                <TZQuestionnaire
+                  projectId={project.id}
+                  serviceType={project.service_type}
+                  existingAnswers={project.tz_answers || undefined}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* TZ (collapsible when proposal exists) */}
+          {project.tz_text && project.status !== "brief" && (
+            <Card>
+              <CardContent className="py-4">
+                <details open={!project.proposal_text}>
+                  <summary className="font-semibold cursor-pointer flex items-center gap-2">
+                    <FileText className="h-4 w-4" /> Техническое задание
+                    {project.proposal_text && (
+                      <span className="text-xs text-muted-foreground font-normal ml-auto">нажмите чтобы развернуть</span>
+                    )}
+                  </summary>
+                  <div className="text-sm whitespace-pre-wrap mt-3">{project.tz_text}</div>
+                </details>
               </CardContent>
             </Card>
           )}
@@ -199,15 +224,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
               <CardContent className="py-4">
                 <h3 className="font-semibold mb-2">Коммерческое предложение</h3>
                 <div className="text-sm whitespace-pre-wrap">{project.proposal_text}</div>
-                {project.status === "proposal" && (
-                  <Separator className="my-4" />
-                )}
               </CardContent>
             </Card>
           )}
 
-          {/* Actions */}
-          {!["done", "cancelled"].includes(project.status) && (
+          {/* Actions (not for brief — questionnaire handles that) */}
+          {!["done", "cancelled", "brief"].includes(project.status) && (
             <Card>
               <CardContent className="py-4">
                 <h3 className="font-semibold mb-3">Следующий шаг</h3>

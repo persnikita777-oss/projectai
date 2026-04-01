@@ -51,23 +51,7 @@ export function ProjectActions({ projectId, status, hasTZ, hasProposal, tzText }
     <div className="flex flex-col gap-3">
       {error && <p className="text-sm text-red-500">{error}</p>}
 
-      {/* Step 1: Generate TZ */}
-      {status === "brief" && (
-        <div>
-          <p className="text-sm text-muted-foreground mb-2">
-            AI сформирует техническое задание на основе вашего брифа. После этого вы сможете его отредактировать.
-          </p>
-          <Button onClick={() => doAction("generate-tz")} disabled={loading !== null}>
-            {loading === "generate-tz" ? (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Генерация ТЗ...</>
-            ) : (
-              <><FileText className="mr-2 h-4 w-4" /> Сформировать ТЗ</>
-            )}
-          </Button>
-        </div>
-      )}
-
-      {/* Step 2: Edit TZ + Request Proposal */}
+      {/* Step: Edit TZ + Request Proposal */}
       {status === "tz" && hasTZ && (
         <div className="flex flex-col gap-3">
           {!editingTZ ? (
