@@ -54,6 +54,16 @@ export async function POST(req: NextRequest) {
     case "update-project-status":
       return updateProjectStatus(projectId, data?.status)
 
+    // --- Deploy ---
+    case "get-settings":
+      return getProjectSettings(projectId)
+
+    case "save-settings":
+      return saveProjectSettings(projectId, data)
+
+    case "deploy-project":
+      return deployProject(projectId)
+
     // --- Documentation ---
     case "generate-docs":
       return generateDocs(projectId, data?.type)
@@ -226,6 +236,56 @@ async function generateDocs(projectId: string, type?: string) {
   ], { maxTokens: 3000 })
 
   return NextResponse.json({ ok: true, docs, type: docType })
+}
+
+async function getProjectSettings(projectId: string) {
+  const { data } = await supabaseAdmin
+    .from("pai_project_settings")
+    .select("*")
+    .eq("project_id", projectId)
+    .single()
+  return NextResponse.json(data || { project_id: projectId, deploy_status: "pending" })
+}
+
+async function saveProjectSettings(projectId: string, data?: Record<string, unknown>) {
+  if (!data) return NextResponse.json({ error: "No data" }, { status: 400 })
+
+  const { data: existing } = await supabaseAdmin
+    .from("pai_project_settings")
+    .select("id")
+    .eq("project_id", projectId)
+    .single()
+
+  const settings = { project_id: projectId, ...data, updated_at: new Date().toISOString() }
+
+  if (existing) {
+    await supabaseAdmin.from("pai_project_settings").update(settings).eq("project_id", projectId)
+  } else {
+    await supabaseAdmin.from("pai_project_settings").insert(settings)
+  }
+
+  return NextResponse.json({ ok: true })
+}
+
+async function deployProject(projectId: string) {
+  const { data: project } = await supabaseAdmin.from("pai_projects").select("*").eq("id", projectId).single()
+  if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+  const { data: settings } = await supabaseAdmin
+    .from("pai_project_settings")
+    .select("*")
+    .eq("project_id", projectId)
+    .single()
+
+  if (!settings) return NextResponse.json({ error: "No deploy settings" }, { status: 400 })
+
+  await supabaseAdmin.from("pai_project_settings")
+    .update({ deploy_status: "deploying", updated_at: new Date().toISOString() })
+    .eq("project_id", projectId)
+
+  await notify(`🚀 Деплой запущен: "${project.title}" (${settings.hosting_type})`)
+
+  return NextResponse.json({ ok: true, hosting: settings.hosting_type, domain: settings.domain })
 }
 
 async function notify(text: string) {

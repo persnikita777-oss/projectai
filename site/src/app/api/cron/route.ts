@@ -79,13 +79,25 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (!nextTask) {
-      // All tasks done → move to review
+      // All tasks done → check if auto-deploy configured
+      const { data: settings } = await supabaseAdmin
+        .from("pai_project_settings")
+        .select("*")
+        .eq("project_id", project.id)
+        .single()
+
       await supabaseAdmin.from("pai_projects").update({
         status: "review",
         updated_at: new Date().toISOString(),
       }).eq("id", project.id)
+
       results.push(`REVIEW: ${project.title}`)
-      await notify(`🔍 Все задачи выполнены: "${project.title}" → на проверке`)
+
+      if (settings && settings.deploy_status === "pending" && (settings.github_repo || settings.domain)) {
+        await notify(`🔍 Все задачи выполнены: "${project.title}" → готов к деплою\nНастройки деплоя заполнены — клиент может запустить деплой в ЛК`)
+      } else {
+        await notify(`🔍 Все задачи выполнены: "${project.title}" → на проверке`)
+      }
       continue
     }
 

@@ -5,9 +5,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, FileText, CheckCircle, Circle, Loader2 } from "lucide-react"
+import { ArrowLeft, FileText, CheckCircle, Circle, Loader2, Settings, Rocket } from "lucide-react"
 import Link from "next/link"
 import { ProjectActions } from "./actions"
+import { DeployButton } from "./deploy-button"
 
 const statusLabels: Record<string, { label: string; color: string; step: number }> = {
   brief: { label: "Бриф получен", color: "bg-gray-100 text-gray-700", step: 1 },
@@ -55,6 +56,13 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
   if (!project) notFound()
 
+  // Get settings
+  const { data: settings } = await supabaseAdmin
+    .from("pai_project_settings")
+    .select("deploy_status, deploy_url, deployed_at")
+    .eq("project_id", id)
+    .single()
+
   // Get tasks
   const { data: tasks } = await supabaseAdmin
     .from("pai_tasks")
@@ -84,7 +92,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
               Создан {new Date(project.created_at).toLocaleDateString("ru-RU")}
             </p>
           </div>
-          <Badge className={st.color}>{st.label}</Badge>
+          <div className="flex items-center gap-2">
+            <Link href={`/dashboard/project/${id}/settings`}>
+              <Button variant="outline" size="icon" title="Настройки деплоя">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </Link>
+            <Badge className={st.color}>{st.label}</Badge>
+          </div>
         </div>
 
         {/* Progress bar */}
@@ -203,6 +218,28 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                   hasProposal={!!project.proposal_text}
                   tzText={project.tz_text || ""}
                 />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Deploy */}
+          {["review", "done"].includes(project.status) && (
+            <Card>
+              <CardContent className="py-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <Rocket className="h-4 w-4" /> Деплой
+                </h3>
+                {settings?.deploy_status === "deployed" && settings?.deploy_url ? (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm">Задеплоен: </span>
+                    <a href={settings.deploy_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline">
+                      {settings.deploy_url}
+                    </a>
+                  </div>
+                ) : (
+                  <DeployButton projectId={id} deployStatus={settings?.deploy_status || "pending"} />
+                )}
               </CardContent>
             </Card>
           )}
