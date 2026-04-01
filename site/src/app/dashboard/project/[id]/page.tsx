@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, FileText, CheckCircle, Circle, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { ProjectActions } from "./actions"
 
 const statusLabels: Record<string, { label: string; color: string; step: number }> = {
   brief: { label: "Бриф получен", color: "bg-gray-100 text-gray-700", step: 1 },
@@ -184,16 +185,23 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                 <h3 className="font-semibold mb-2">Коммерческое предложение</h3>
                 <div className="text-sm whitespace-pre-wrap">{project.proposal_text}</div>
                 {project.status === "proposal" && (
-                  <>
-                    <Separator className="my-4" />
-                    <div className="flex gap-2">
-                      <Button size="sm" asChild>
-                        <a href={`/api/project/${project.id}/approve`}>Утвердить и начать</a>
-                      </Button>
-                      <Button size="sm" variant="outline">Обсудить</Button>
-                    </div>
-                  </>
+                  <Separator className="my-4" />
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Actions */}
+          {!["done", "cancelled"].includes(project.status) && (
+            <Card>
+              <CardContent className="py-4">
+                <h3 className="font-semibold mb-3">Следующий шаг</h3>
+                <ProjectActions
+                  projectId={project.id}
+                  status={project.status}
+                  hasTZ={!!project.tz_text}
+                  hasProposal={!!project.proposal_text}
+                />
               </CardContent>
             </Card>
           )}
