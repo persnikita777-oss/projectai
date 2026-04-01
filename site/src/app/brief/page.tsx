@@ -46,17 +46,18 @@ function BriefForm() {
   const [telegram, setTelegram] = useState("")
   const [email, setEmail] = useState("")
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle")
+  const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null)
 
   // Предзаполняем из параметров калькулятора
   useEffect(() => {
-    const service = searchParams.get("service")
+    const services = searchParams.get("services")
     const estimate = searchParams.get("estimate")
     const platform = searchParams.get("platform")
     const integrations = searchParams.get("integrations")
     const extras = searchParams.get("extras")
 
-    if (service) {
-      setSelectedServices([service])
+    if (services) {
+      setSelectedServices(services.split(","))
     }
 
     if (estimate) {
@@ -102,7 +103,11 @@ function BriefForm() {
           estimate: searchParams.get("estimate"),
         }),
       })
-      if (!res.ok) throw new Error()
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Ошибка")
+      if (data.credentials) {
+        setCredentials(data.credentials)
+      }
       setStatus("sent")
     } catch {
       setStatus("error")
@@ -117,9 +122,29 @@ function BriefForm() {
             <Check className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-3xl font-bold mb-4">Заявка отправлена</h1>
-          <p className="text-muted-foreground mb-6">
-            Мы получили вашу заявку и ответим в течение 30 минут в рабочее время.
+          <p className="text-muted-foreground mb-4">
+            Мы получили вашу заявку и начнём работу. Следите за прогрессом в личном кабинете.
           </p>
+
+          {credentials && (
+            <div className="bg-muted/50 rounded-lg p-4 mb-6 text-left">
+              <p className="text-sm font-medium mb-3 text-center">Данные для входа в личный кабинет:</p>
+              <div className="grid gap-2 text-sm">
+                <div className="flex items-center justify-between bg-background rounded px-3 py-2">
+                  <span className="text-muted-foreground">Логин:</span>
+                  <code className="font-mono">{credentials.email}</code>
+                </div>
+                <div className="flex items-center justify-between bg-background rounded px-3 py-2">
+                  <span className="text-muted-foreground">Пароль:</span>
+                  <code className="font-mono">{credentials.password}</code>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-3 text-center">
+                Сохраните эти данные — они понадобятся для входа
+              </p>
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row justify-center gap-3">
             <Button asChild>
               <a href="/login">
@@ -266,13 +291,15 @@ function BriefForm() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium mb-1.5 block">Email</label>
+                    <label className="text-sm font-medium mb-1.5 block">Email *</label>
                     <Input
                       placeholder="email@company.ru"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      required
                     />
+                    <p className="text-xs text-muted-foreground mt-1">Используется для входа в личный кабинет</p>
                   </div>
                 </div>
               </CardContent>
