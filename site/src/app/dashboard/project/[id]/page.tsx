@@ -201,6 +201,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                   status={project.status}
                   hasTZ={!!project.tz_text}
                   hasProposal={!!project.proposal_text}
+                  tzText={project.tz_text || ""}
                 />
               </CardContent>
             </Card>

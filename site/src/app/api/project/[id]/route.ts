@@ -25,7 +25,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 // POST — project actions: generate-tz, generate-proposal, approve, create-tasks
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { action } = await req.json()
+  const body = await req.json()
+  const { action } = body
 
   const { data: project } = await supabaseAdmin
     .from("pai_projects")
@@ -40,6 +41,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   switch (action) {
     case "generate-tz":
       return generateTZ(project)
+    case "save-tz":
+      return saveTZ(project, body.tz)
     case "generate-proposal":
       return generateProposal(project)
     case "approve":
@@ -103,6 +106,20 @@ async function generateTZ(project: Record<string, unknown>) {
   return NextResponse.json({ ok: true, tz })
 }
 
+// --- Save TZ (client edits) ---
+async function saveTZ(project: Record<string, unknown>, tz: string) {
+  if (!tz || typeof tz !== "string") {
+    return NextResponse.json({ error: "ТЗ не может быть пустым" }, { status: 400 })
+  }
+
+  await supabaseAdmin
+    .from("pai_projects")
+    .update({ tz_text: tz, updated_at: new Date().toISOString() })
+    .eq("id", project.id)
+
+  return NextResponse.json({ ok: true })
+}
+
 // --- Generate Proposal ---
 async function generateProposal(project: Record<string, unknown>) {
   if (!project.tz_text) {
@@ -112,7 +129,7 @@ async function generateProposal(project: Record<string, unknown>) {
   const basePrice = BASE_PRICES[project.service_type as string] || 50000
   const estimateAmount = (project.estimate_amount as number) || basePrice
 
-  const prompt = `Ты — коммерческий директор AI-студии ProjectAI. На основе ТЗ составь коммерческое предложение.
+  const prompt = `Ты — коммерческий директор AI-студии ProjectAI. На основе ТЗ составь коммерческое предложение и план разработки.
 
 ТЗ:
 ${project.tz_text}
@@ -120,14 +137,23 @@ ${project.tz_text}
 Оценка калькулятора: от ${estimateAmount.toLocaleString("ru-RU")} ₽
 Базовая цена услуги: от ${basePrice.toLocaleString("ru-RU")} ₽
 
-Правила ценообразования ProjectAI:
-- Наши цены в 3-5 раз ниже рынка (маржа 60-90% за счёт AI-автоматизации)
-- Простой проект (бот): markup ×6-15 от себестоимости
-- Средний (ассистент): ×5-10
-- Сложный (сервис): ×4-8
-- Себестоимость: API ~3500₽ + инфра ~1000₽ + ops ~8000₽ = ~12500₽
+О студии ProjectAI:
+- Разработка ведётся AI-агентом (Claude Code) под контролем инженера
+- Реальные скорости: полный сайт (10+ страниц, SEO, аналитика) = 4-6 часов
+- Личный кабинет с авторизацией + API = 2-3 часа
+- AI чат-бот (интеграция, обучение) = 2-4 часа
+- Полная платформа (сайт + ЛК + бот + API + деплой) = 1-2 дня
+- Наши цены в 3-5 раз ниже рынка за счёт AI-автоматизации
 
-Составь КП:
+Правила сроков:
+- AI чат-бот: 1-3 дня
+- Сайт + AI: 1-2 дня
+- AI-ассистент (RAG): 3-5 дней
+- Автоматизация процессов: 5-10 дней
+- Интеграция AI: 3-7 дней
+- AI-консалтинг: 1-2 дня
+
+Составь КП и план:
 
 ## Коммерческое предложение
 
@@ -138,16 +164,20 @@ ${project.tz_text}
 [Итоговая цена в рублях — конкретная сумма, не диапазон]
 [Разбивка: что включено в цену]
 
-### Сроки
-[Конкретные сроки в рабочих днях]
+### План разработки
+[Пронумерованные этапы с конкретными сроками в часах/днях]
+[Каждый этап: название — что делаем — срок]
+
+### Общий срок
+[Итого: X рабочих дней]
 
 ### Этапы оплаты
-[Обычно: 50% предоплата, 50% после сдачи]
+[50% предоплата, 50% после сдачи]
 
 ### Гарантии
-[1 месяц бесплатной поддержки, 3 итерации правок]
+[1 месяц бесплатной поддержки, до 3 итераций правок, исходный код]
 
-Цена должна быть реалистичной, на основе оценки калькулятора. Пиши от лица студии.`
+Цена должна быть реалистичной, основанной на оценке калькулятора. Сроки — реальные, основанные на наших скоростях. Пиши от лица студии.`
 
   const proposal = await callAI([
     { role: "system", content: "Ты коммерческий директор AI-студии. Пиши КП кратко, убедительно, с конкретными цифрами. На русском." },

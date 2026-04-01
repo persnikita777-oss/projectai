@@ -48,38 +48,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 2. Auto-generate proposals for projects with TZ (status = "tz")
-  const { data: tzReady } = await supabaseAdmin
-    .from("pai_projects")
-    .select("*")
-    .eq("status", "tz")
-    .order("created_at", { ascending: true })
-    .limit(3)
-
-  for (const project of tzReady || []) {
-    try {
-      const estimate = project.estimate_amount || 50000
-      const proposal = await callAI([
-        { role: "system", content: "Ты коммерческий директор AI-студии. Составь КП. Русский." },
-        { role: "user", content: `ТЗ:\n${project.tz_text}\n\nОценка: от ${estimate.toLocaleString("ru-RU")} ₽\nСоставь КП: что входит, стоимость (конкретная), сроки, этапы оплаты, гарантии.` },
-      ], { maxTokens: 2000 })
-
-      const priceMatch = proposal.match(/(\d[\d\s]*\d)\s*₽/)
-      const price = priceMatch ? parseInt(priceMatch[1].replace(/\s/g, ""), 10) : estimate
-
-      await supabaseAdmin.from("pai_projects").update({
-        proposal_text: proposal,
-        proposal_price: price,
-        status: "proposal",
-        updated_at: new Date().toISOString(),
-      }).eq("id", project.id)
-
-      results.push(`KP: ${project.title} — ${price}₽`)
-      await notify(`💰 КП автогенерация: "${project.title}" — ${price.toLocaleString("ru-RU")} ₽`)
-    } catch (e) {
-      results.push(`KP ERROR: ${project.title}: ${e}`)
-    }
-  }
+  // 2. КП НЕ генерируется автоматически — клиент сначала редактирует ТЗ,
+  //    потом нажимает «ТЗ готово → получить КП» в ЛК
 
   // 3. Process next pending task in active projects (status = "development")
   const { data: devProjects } = await supabaseAdmin
