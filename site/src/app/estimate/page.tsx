@@ -52,10 +52,16 @@ function formatPrice(n: number): string {
 
 export default function EstimatePage() {
   const router = useRouter()
-  const [selectedService, setSelectedService] = useState<string | null>(null)
+  const [selectedServices, setSelectedServices] = useState<string[]>([])
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null)
   const [selectedIntegrations, setSelectedIntegrations] = useState<string[]>([])
   const [selectedExtras, setSelectedExtras] = useState<string[]>([])
+
+  const toggleService = (id: string) => {
+    setSelectedServices((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    )
+  }
 
   const toggleIntegration = (id: string) => {
     setSelectedIntegrations((prev) =>
@@ -69,7 +75,10 @@ export default function EstimatePage() {
     )
   }
 
-  const servicePrice = serviceTypes.find((s) => s.id === selectedService)?.price || 0
+  const servicePrice = selectedServices.reduce(
+    (sum, id) => sum + (serviceTypes.find((s) => s.id === id)?.price || 0),
+    0
+  )
   const platformPrice = platforms.find((p) => p.id === selectedPlatform)?.price || 0
   const integrationsPrice = selectedIntegrations.reduce(
     (sum, id) => sum + (integrations.find((i) => i.id === id)?.price || 0),
@@ -102,17 +111,18 @@ export default function EstimatePage() {
             {/* Service type */}
             <section>
               <h2 className="text-lg font-bold mb-3">1. Тип услуги</h2>
+              <p className="text-sm text-muted-foreground mb-3">Можно выбрать несколько — каждая станет отдельным проектом</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {serviceTypes.map((s) => (
                   <button
                     key={s.id}
-                    onClick={() => setSelectedService(s.id)}
+                    onClick={() => toggleService(s.id)}
                     className={`flex items-center justify-between rounded-lg border p-3 text-left text-sm transition-colors hover:border-primary ${
-                      selectedService === s.id ? "border-primary bg-primary/5" : ""
+                      selectedServices.includes(s.id) ? "border-primary bg-primary/5" : ""
                     }`}
                   >
                     <span className="flex items-center gap-2">
-                      {selectedService === s.id && <Check className="h-4 w-4 text-primary" />}
+                      {selectedServices.includes(s.id) && <Check className="h-4 w-4 text-primary" />}
                       {s.label}
                     </span>
                     <span className="text-muted-foreground">от {formatPrice(s.price)}</span>
@@ -199,12 +209,16 @@ export default function EstimatePage() {
                 <CardContent className="pt-6">
                   <h3 className="font-bold mb-4">Предварительная оценка</h3>
 
-                  {servicePrice > 0 && (
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Услуга</span>
-                      <span>от {formatPrice(servicePrice)}</span>
-                    </div>
-                  )}
+                  {selectedServices.map((id) => {
+                    const s = serviceTypes.find((x) => x.id === id)
+                    if (!s) return null
+                    return (
+                      <div key={id} className="flex justify-between text-sm mb-2">
+                        <span>{s.label}</span>
+                        <span>от {formatPrice(s.price)}</span>
+                      </div>
+                    )
+                  })}
                   {platformPrice > 0 && (
                     <div className="flex justify-between text-sm mb-2">
                       <span>Платформа</span>
@@ -242,7 +256,7 @@ export default function EstimatePage() {
                     size="lg"
                     onClick={() => {
                       const params = new URLSearchParams()
-                      if (selectedService) params.set("service", selectedService)
+                      if (selectedServices.length > 0) params.set("services", selectedServices.join(","))
                       if (selectedPlatform) params.set("platform", selectedPlatform)
                       if (selectedIntegrations.length > 0) params.set("integrations", selectedIntegrations.join(","))
                       if (selectedExtras.length > 0) params.set("extras", selectedExtras.join(","))
