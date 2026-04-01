@@ -95,11 +95,19 @@ export default function LoginPage() {
               </div>
             </form>
 
-            <p className="text-xs text-muted-foreground text-center mt-4">
-              Логин и пароль выдаются при отправке заявки.
-              <br />
-              Нет аккаунта? <Link href="/brief" className="text-primary underline">Оставить заявку</Link>
-            </p>
+            <div className="mt-6 pt-4 border-t">
+              <p className="text-sm font-medium text-center mb-3">Как получить пароль?</p>
+              <div className="grid gap-2 text-xs text-muted-foreground">
+                <div className="flex gap-2">
+                  <span className="font-medium text-foreground shrink-0">1.</span>
+                  <span>Оставьте <Link href="/brief" className="text-primary underline">заявку на сайте</Link> — логин и пароль появятся на экране</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="font-medium text-foreground shrink-0">2.</span>
+                  <span>Или напишите <code>/start</code> нашему <a href="https://t.me/projectai_bot" target="_blank" rel="noopener noreferrer" className="text-primary underline">боту в Telegram</a> — он пришлёт данные</span>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
