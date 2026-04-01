@@ -28,7 +28,7 @@ export function ChatWidget() {
   }, [messages])
 
   useEffect(() => {
-    if (open) inputRef.current?.focus()
+    if (open && window.innerWidth > 640) inputRef.current?.focus()
   }, [open])
 
   const send = async () => {
@@ -83,8 +83,8 @@ export function ChatWidget() {
     <>
       {/* Chat window */}
       {open && (
-        <div className="fixed bottom-20 right-4 z-50 w-[360px] max-w-[calc(100vw-2rem)] rounded-xl border bg-background shadow-2xl flex flex-col overflow-hidden"
-          style={{ height: "min(500px, calc(100vh - 120px))" }}
+        <div className="fixed bottom-20 right-4 z-50 w-[360px] max-w-[calc(100vw-2rem)] max-sm:bottom-16 max-sm:right-2 max-sm:left-2 max-sm:w-auto rounded-xl border bg-background shadow-2xl flex flex-col overflow-hidden"
+          style={{ height: "min(400px, calc(100dvh - 100px))" }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b bg-primary text-primary-foreground">
@@ -182,7 +182,7 @@ export function ChatWidget() {
       {/* Floating button */}
       <button
         onClick={() => setOpen(!open)}
-        className="fixed bottom-4 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
+        className="fixed bottom-4 right-4 max-sm:bottom-3 max-sm:right-3 z-50 flex h-14 w-14 max-sm:h-12 max-sm:w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
         aria-label="Открыть чат"
       >
         {open ? (
